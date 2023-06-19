@@ -4,7 +4,8 @@
     "outDir": "./build",
     "allowJs": true,
     "removeComments": true,
-    "stripInternal": true
+    "stripInternal": true,
+    "sourceMap": true
   },
   "include": ["src"],
   "exclude": ["**/*.spec.ts"]
