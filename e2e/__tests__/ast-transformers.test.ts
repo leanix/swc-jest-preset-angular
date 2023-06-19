@@ -1,13 +1,13 @@
 import { jsonNoCache as runWithJsonNoCache } from '../run-jest';
 
 const executeTest = (dirName: string): void => {
-  test(`successfully runs the tests inside ${dirName} with isolatedModules: false`, () => {
+  test(`successfully runs the tests with isolatedModules: false`, () => {
     const { json } = runWithJsonNoCache(dirName);
 
     expect(json.success).toBe(true);
   });
 
-  test(`successfully runs the tests inside ${dirName} with isolatedModules: true`, () => {
+  test(`successfully runs the tests with isolatedModules: true`, () => {
     const { json } = runWithJsonNoCache(dirName, ['-c=jest-isolated.config.js']);
 
     expect(json.success).toBe(true);

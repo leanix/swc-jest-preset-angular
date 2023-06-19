@@ -9,7 +9,7 @@ beforeAll(() => {
   runYarnInstall(path.join(__dirname, '..', DIR));
 });
 
-test(`successfully run the tests inside ${DIR} with CommonJS mode`, () => {
+test(`successfully run the tests with CommonJS mode`, () => {
   const { json } = runWithJsonNoCache(DIR);
 
   expect(json.success).toBe(true);
@@ -17,7 +17,7 @@ test(`successfully run the tests inside ${DIR} with CommonJS mode`, () => {
 
 // The versions where vm.Module exists and commonjs with "exports" is not broken
 onNodeVersions('>=12.16.0', () => {
-  test(`successfully run the tests inside ${DIR} with ESM mode`, () => {
+  test(`successfully run the tests with ESM mode`, () => {
     const { json } = runWithJsonNoCache(DIR, ['-c=jest-esm.config.mjs'], {
       nodeOptions: '--experimental-vm-modules --no-warnings',
     });
