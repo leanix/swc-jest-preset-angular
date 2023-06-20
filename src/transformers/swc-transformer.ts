@@ -94,34 +94,13 @@ function getOptionsFromSwrc(): Options {
   return {};
 }
 
-const nodeTargetDefaults = new Map([
-  ['12', 'es2018'],
-  ['13', 'es2019'],
-  ['14', 'es2020'],
-  ['15', 'es2021'],
-  ['16', 'es2021'],
-  ['17', 'es2022'],
-  ['18', 'es2022'],
-  ['19', 'es2022'],
-  ['20', 'es2022'],
-  // TODO: Use es2023 once @swc/core supports it
-  // ['18', 'es2023'],
-  // ['19', 'es2023'],
-  // ['20', 'es2023'],
-]);
-
 function buildSwcTransformOpts(swcOptions: (Options & { experimental?: unknown }) | undefined): Options {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { experimental, ...computedSwcOptions } =
     swcOptions || (getOptionsFromSwrc() as Options & { experimental?: unknown });
 
   if (!computedSwcOptions.jsc?.target) {
-    set(
-      computedSwcOptions,
-      'jsc.target',
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      nodeTargetDefaults.get(process.version.match(/v(\d+)/)![1]) || 'es2018',
-    );
+    set(computedSwcOptions, 'jsc.target', 'es2016');
   }
 
   set(computedSwcOptions, 'jsc.transform.hidden.jest', true);
