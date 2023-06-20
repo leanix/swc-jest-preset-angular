@@ -15,8 +15,7 @@
     "target": "ES2015",
     "module": "CommonJS",
     "lib": ["esnext", "dom"],
-    "types": ["node", "jest"],
-    "typeRoots": ["types", "node_modules/@types"]
+    "types": ["node", "jest"]
   },
   "files": ["src/global.d.ts"]
 }
