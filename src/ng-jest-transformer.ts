@@ -1,33 +1,30 @@
 import { spawnSync } from 'child_process';
 
-import type { TransformedSource, TransformOptions } from '@jest/transform';
+import type { TransformedSource, TransformOptions, Transformer } from '@jest/transform';
 import { LogContexts, LogLevels, type Logger, createLogger } from 'bs-logger';
 import { type TsJestTransformerOptions, type ProjectConfigTsJest, ConfigSet, TsJestTransformer } from 'ts-jest';
 
 import { NgJestCompiler } from './compiler/ng-jest-compiler';
 import { NgJestConfig } from './config/ng-jest-config';
+import { createTransformer } from './transformers/swc-transformer';
 
 // Cache the result between multiple transformer instances
 // to avoid spawning multiple processes (which can have a major
 // performance impact when used with multiple projects).
 let useNativeEsbuild: boolean | undefined;
 
+const useSwc = true;
+
 export class NgJestTransformer {
   #ngJestLogger: Logger;
   #esbuildImpl: typeof import('esbuild');
   #tsJestTransformer: TsJestTransformer;
-
-  protected processAsync: TsJestTransformer['processAsync'];
-  protected getCacheKey: TsJestTransformer['getCacheKey'];
-  protected getCacheKeyAsync: TsJestTransformer['getCacheKeyAsync'];
+  #swcJestTransformer: Transformer;
 
   constructor(tsJestConfig?: TsJestTransformerOptions) {
     this.#tsJestTransformer = new TsJestTransformer(tsJestConfig);
     this.#tsJestTransformer['_createConfigSet'] = this._createConfigSet.bind(this);
     this.#tsJestTransformer['_createCompiler'] = this._createCompiler.bind(this);
-    this.processAsync = this.#tsJestTransformer.processAsync.bind(this.#tsJestTransformer);
-    this.getCacheKey = this.#tsJestTransformer.getCacheKey.bind(this.#tsJestTransformer);
-    this.getCacheKeyAsync = this.#tsJestTransformer.getCacheKeyAsync.bind(this.#tsJestTransformer);
     this.#ngJestLogger = createLogger({
       context: {
         [LogContexts.package]: 'jest-preset-angular',
@@ -36,6 +33,29 @@ export class NgJestTransformer {
         version: require('../package.json').version,
       },
       targets: process.env.NG_JEST_LOG ?? undefined,
+    });
+    this.#swcJestTransformer = createTransformer({
+      jsc: {
+        parser: {
+          syntax: 'typescript',
+          tsx: false,
+          decorators: true,
+          dynamicImport: true,
+        },
+        transform: {
+          legacyDecorator: true,
+          decoratorMetadata: undefined,
+        },
+        keepClassNames: false,
+        experimental: { keepImportAssertions: true },
+      },
+      module: {
+        type: 'commonjs',
+        noInterop: false,
+        strictMode: true,
+        ignoreDynamic: false,
+      },
+      swcrc: false,
     });
 
     if (useNativeEsbuild === undefined) {
@@ -80,8 +100,20 @@ export class NgJestTransformer {
         code,
         map,
       };
+    } else if (useSwc) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      return this.#swcJestTransformer.process!(fileContent, filePath, transformOptions);
     } else {
       return this.#tsJestTransformer.process(fileContent, filePath, transformOptions);
+    }
+  }
+
+  getCacheKey(fileContent: string, filePath: string, transformOptions: TransformOptions): string {
+    if (useSwc) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      return this.#swcJestTransformer.getCacheKey!(fileContent, filePath, transformOptions);
+    } else {
+      return this.#tsJestTransformer.getCacheKey(fileContent, filePath, transformOptions);
     }
   }
 }
