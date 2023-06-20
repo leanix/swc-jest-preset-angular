@@ -8,19 +8,21 @@ import type { Transformer, TransformOptions } from '@jest/transform';
 import { transformSync, transform, Options, version as swcVersion } from '@swc/core';
 import { parse as parseJsonC, type ParseError } from 'jsonc-parser';
 
-import { version } from './package.json';
+const version = '0.2.26';
 
-function createTransformer(
+interface CustomCoverageInstrumentation {
+  enabled: boolean;
+  coverageVariable?: string;
+  compact?: boolean;
+  reportLogic?: boolean;
+  ignoreClassMethods?: string[];
+  instrumentLog?: { level: string; enableTrace: boolean };
+}
+
+export function createTransformer(
   swcTransformOpts?: Options & {
     experimental?: {
-      customCoverageInstrumentation?: {
-        enabled: boolean;
-        coverageVariable?: string;
-        compact?: boolean;
-        reportLogic?: boolean;
-        ignoreClassMethods?: Array<string>;
-        instrumentLog?: { level: string; enableTrace: boolean };
-      };
+      customCoverageInstrumentation?: CustomCoverageInstrumentation;
     };
   },
 ): Transformer {
@@ -40,7 +42,7 @@ function createTransformer(
         ...computedSwcOptions,
         module: {
           ...computedSwcOptions.module,
-          type: jestOptions.supportsStaticESM ? 'es6' : ('commonjs' as any),
+          type: jestOptions.supportsStaticESM ? 'es6' : 'commonjs',
         },
         filename,
       });
@@ -53,7 +55,7 @@ function createTransformer(
         module: {
           ...computedSwcOptions.module,
           // async transform is always ESM
-          type: 'es6' as any,
+          type: 'es6',
         },
         filename,
       });
@@ -76,8 +78,6 @@ function createTransformer(
   };
 }
 
-export = { createTransformer };
-
 function getOptionsFromSwrc(): Options {
   const swcrc = path.join(process.cwd(), '.swcrc');
   if (fs.existsSync(swcrc)) {
@@ -88,8 +88,9 @@ function getOptionsFromSwrc(): Options {
       throw new Error(`Error parsing ${swcrc}: ${errors.join(', ')}`);
     }
 
-    return options as Options;
+    return options;
   }
+
   return {};
 }
 
@@ -136,12 +137,12 @@ function insertInstrumentationOptions(
   jestOptions: TransformOptions<unknown>,
   canInstrument: boolean,
   swcTransformOpts: Options,
-  instrumentOptions?: any,
-) {
+  instrumentOptions?: Omit<CustomCoverageInstrumentation, 'enabled'>,
+): void {
   const shouldInstrument = jestOptions.instrument && canInstrument;
 
   if (!shouldInstrument) {
-    return swcTransformOpts;
+    return;
   }
 
   if (swcTransformOpts?.jsc?.experimental?.plugins?.some((x) => x[0] === 'swc-plugin-coverage-instrument')) {
@@ -163,14 +164,14 @@ function insertInstrumentationOptions(
   swcTransformOpts.jsc.experimental.plugins?.push(['swc-plugin-coverage-instrument', instrumentOptions ?? {}]);
 }
 
-function set(obj: any, path: string, value: any) {
+function set(obj: Record<string, unknown>, path: string, value: unknown): void {
   let o = obj;
   const parents = path.split('.');
   const key = parents.pop() as string;
 
   for (const prop of parents) {
     if (o[prop] == null) o[prop] = {};
-    o = o[prop];
+    o = o[prop] as Record<string, unknown>;
   }
 
   o[key] = value;
