@@ -2325,6 +2325,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@jest/create-cache-key-function@npm:^29.5.0":
+  version: 29.5.0
+  resolution: "@jest/create-cache-key-function@npm:29.5.0"
+  dependencies:
+    "@jest/types": ^29.5.0
+  checksum: 9d96245897caf1a69bc09ab262fb33249165eaaeaeb012ba5a8aabc4a3745494419b1168462fa32fcca23bc13106b8eacfe4d002b9c179f3d6a30f592fbb2060
+  languageName: node
+  linkType: hard
+
 "@jest/environment@npm:^29.5.0":
   version: 29.5.0
   resolution: "@jest/environment@npm:29.5.0"
@@ -2665,6 +2674,120 @@ __metadata:
   dependencies:
     "@sinonjs/commons": ^2.0.0
   checksum: c62aa98e7cefda8dedc101ce227abc888dc46b8ff9706c5f0a8dfd9c3ada97d0a5611384738d9ba0b26b59f99c2ba24efece8e779bb08329e9e87358fa309824
+  languageName: node
+  linkType: hard
+
+"@swc/core-darwin-arm64@npm:1.3.65":
+  version: 1.3.65
+  resolution: "@swc/core-darwin-arm64@npm:1.3.65"
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@swc/core-darwin-x64@npm:1.3.65":
+  version: 1.3.65
+  resolution: "@swc/core-darwin-x64@npm:1.3.65"
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@swc/core-linux-arm-gnueabihf@npm:1.3.65":
+  version: 1.3.65
+  resolution: "@swc/core-linux-arm-gnueabihf@npm:1.3.65"
+  conditions: os=linux & cpu=arm
+  languageName: node
+  linkType: hard
+
+"@swc/core-linux-arm64-gnu@npm:1.3.65":
+  version: 1.3.65
+  resolution: "@swc/core-linux-arm64-gnu@npm:1.3.65"
+  conditions: os=linux & cpu=arm64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"@swc/core-linux-arm64-musl@npm:1.3.65":
+  version: 1.3.65
+  resolution: "@swc/core-linux-arm64-musl@npm:1.3.65"
+  conditions: os=linux & cpu=arm64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"@swc/core-linux-x64-gnu@npm:1.3.65":
+  version: 1.3.65
+  resolution: "@swc/core-linux-x64-gnu@npm:1.3.65"
+  conditions: os=linux & cpu=x64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"@swc/core-linux-x64-musl@npm:1.3.65":
+  version: 1.3.65
+  resolution: "@swc/core-linux-x64-musl@npm:1.3.65"
+  conditions: os=linux & cpu=x64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"@swc/core-win32-arm64-msvc@npm:1.3.65":
+  version: 1.3.65
+  resolution: "@swc/core-win32-arm64-msvc@npm:1.3.65"
+  conditions: os=win32 & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@swc/core-win32-ia32-msvc@npm:1.3.65":
+  version: 1.3.65
+  resolution: "@swc/core-win32-ia32-msvc@npm:1.3.65"
+  conditions: os=win32 & cpu=ia32
+  languageName: node
+  linkType: hard
+
+"@swc/core-win32-x64-msvc@npm:1.3.65":
+  version: 1.3.65
+  resolution: "@swc/core-win32-x64-msvc@npm:1.3.65"
+  conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@swc/core@npm:^1.3.65":
+  version: 1.3.65
+  resolution: "@swc/core@npm:1.3.65"
+  dependencies:
+    "@swc/core-darwin-arm64": 1.3.65
+    "@swc/core-darwin-x64": 1.3.65
+    "@swc/core-linux-arm-gnueabihf": 1.3.65
+    "@swc/core-linux-arm64-gnu": 1.3.65
+    "@swc/core-linux-arm64-musl": 1.3.65
+    "@swc/core-linux-x64-gnu": 1.3.65
+    "@swc/core-linux-x64-musl": 1.3.65
+    "@swc/core-win32-arm64-msvc": 1.3.65
+    "@swc/core-win32-ia32-msvc": 1.3.65
+    "@swc/core-win32-x64-msvc": 1.3.65
+  peerDependencies:
+    "@swc/helpers": ^0.5.0
+  dependenciesMeta:
+    "@swc/core-darwin-arm64":
+      optional: true
+    "@swc/core-darwin-x64":
+      optional: true
+    "@swc/core-linux-arm-gnueabihf":
+      optional: true
+    "@swc/core-linux-arm64-gnu":
+      optional: true
+    "@swc/core-linux-arm64-musl":
+      optional: true
+    "@swc/core-linux-x64-gnu":
+      optional: true
+    "@swc/core-linux-x64-musl":
+      optional: true
+    "@swc/core-win32-arm64-msvc":
+      optional: true
+    "@swc/core-win32-ia32-msvc":
+      optional: true
+    "@swc/core-win32-x64-msvc":
+      optional: true
+  peerDependenciesMeta:
+    "@swc/helpers":
+      optional: true
+  checksum: 3c31cd8846e9f60265c53b812c91c76401023d5d8652e17804ec356e6719977111a0ce18da703adf3afc1648035864b54a6b282d8de1548860dda6fac15b2ea5
   languageName: node
   linkType: hard
 
@@ -7688,8 +7811,10 @@ __metadata:
     "@angular/platform-browser-dynamic": ^16.0.4
     "@commitlint/cli": ^17.6.5
     "@commitlint/config-angular": ^17.6.5
+    "@jest/create-cache-key-function": ^29.5.0
     "@jest/transform": ^29.5.0
     "@jest/types": ^29.5.0
+    "@swc/core": ^1.3.65
     "@types/jest": ^29.5.2
     "@types/node": ^18.16.18
     "@types/semver": ^7.5.0
@@ -7717,6 +7842,7 @@ __metadata:
     jest-environment-jsdom: ^29.0.0
     jest-snapshot-serializer-raw: ^1.2.0
     jest-util: ^29.0.0
+    jsonc-parser: ^3.2.0
     pinst: ^3.0.0
     prettier: ^2.8.8
     pretty-format: ^29.0.0
@@ -8113,7 +8239,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jsonc-parser@npm:3.2.0":
+"jsonc-parser@npm:3.2.0, jsonc-parser@npm:^3.2.0":
   version: 3.2.0
   resolution: "jsonc-parser@npm:3.2.0"
   checksum: 946dd9a5f326b745aa326d48a7257e3f4a4b62c5e98ec8e49fa2bdd8d96cef7e6febf1399f5c7016114fd1f68a1c62c6138826d5d90bc650448e3cf0951c53c7
