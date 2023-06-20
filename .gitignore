@@ -2,6 +2,7 @@ node_modules
 /build
 *.log
 .idea
+/.vscode/
 *.tgz
 .yarn/*
 e2e/**/.yarn/*
