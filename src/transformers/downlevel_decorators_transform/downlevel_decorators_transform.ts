@@ -29,8 +29,8 @@ import {isAliasImportDeclaration, loadIsReferencedAliasDeclarationPatch} from '.
  * Whether a given decorator should be treated as an Angular decorator.
  * Either it's used in @angular/core, or it's imported from there.
  */
-function isAngularDecorator(decorator: Decorator, isCore: boolean): boolean {
-  return isCore || (decorator.import !== null && decorator.import.from === '@angular/core');
+function isAngularDecorator(decorator: Decorator): boolean {
+  return decorator.import !== null && decorator.import.from === '@angular/core';
 }
 
 /*
@@ -54,8 +54,6 @@ function isAngularDecorator(decorator: Decorator, isCore: boolean): boolean {
   https://github.com/angular/tsickle/blob/fae06becb1570f491806060d83f29f2d50c43cdd/src/decorator_downlevel_transformer.ts
  #####################################################################
 */
-
-const DECORATOR_INVOCATION_JSDOC_TYPE = '!Array<{type: !Function, args: (undefined|!Array<?>)}>';
 
 /**
  * Extracts the type of the decorator (the function or expression invoked), as well as all the
@@ -118,8 +116,7 @@ function extractMetadataFromSingleDecorator(
 function createCtorParametersClassProperty(
     diagnostics: ts.Diagnostic[],
     entityNameToExpression: (n: ts.EntityName) => ts.Expression | undefined,
-    ctorParameters: ParameterDecorationInfo[],
-    isClosureCompilerEnabled: boolean): ts.PropertyDeclaration {
+    ctorParameters: ParameterDecorationInfo[]): ts.PropertyDeclaration {
   const params: ts.Expression[] = [];
 
   for (const ctorParam of ctorParameters) {
@@ -152,25 +149,6 @@ function createCtorParametersClassProperty(
   const ctorProp = createPropertyDeclaration(
       [ts.factory.createToken(ts.SyntaxKind.StaticKeyword)], 'ctorParameters', undefined, undefined,
       initializer);
-  if (isClosureCompilerEnabled) {
-    ts.setSyntheticLeadingComments(ctorProp, [
-      {
-        kind: ts.SyntaxKind.MultiLineCommentTrivia,
-        text: [
-          `*`,
-          ` * @type {function(): !Array<(null|{`,
-          ` *   type: ?,`,
-          ` *   decorators: (undefined|${DECORATOR_INVOCATION_JSDOC_TYPE}),`,
-          ` * })>}`,
-          ` * @nocollapse`,
-          ` `,
-        ].join('\n'),
-        pos: -1,
-        end: -1,
-        hasTrailingNewLine: true,
-      },
-    ]);
-  }
   return ctorProp;
 }
 
@@ -259,35 +237,10 @@ interface ParameterDecorationInfo {
  * Gets a transformer for downleveling Angular decorators.
  * @param typeChecker Reference to the program's type checker.
  * @param host Reflection host that is used for determining decorators.
- * @param diagnostics List which will be populated with diagnostics if any.
- * @param isCore Whether the current TypeScript program is for the `@angular/core` package.
- * @param isClosureCompilerEnabled Whether closure annotations need to be added where needed.
- * @param skipClassDecorators Whether class decorators should be skipped from downleveling.
- *   This is useful for JIT mode where class decorators should be preserved as they could rely
- *   on immediate execution. e.g. downleveling `@Injectable` means that the injectable factory
- *   is not created, and injecting the token will not work. If this decorator would not be
- *   downleveled, the `Injectable` decorator will execute immediately on file load, and
- *   Angular will generate the corresponding injectable factory.
  */
 export function getDownlevelDecoratorsTransform(
-    typeChecker: ts.TypeChecker, host: ReflectionHost, diagnostics: ts.Diagnostic[],
-    isCore: boolean, isClosureCompilerEnabled: boolean,
-    skipClassDecorators: boolean): ts.TransformerFactory<ts.SourceFile> {
-  function addJSDocTypeAnnotation(node: ts.Node, jsdocType: string): void {
-    if (!isClosureCompilerEnabled) {
-      return;
-    }
-
-    ts.setSyntheticLeadingComments(node, [
-      {
-        kind: ts.SyntaxKind.MultiLineCommentTrivia,
-        text: `* @type {${jsdocType}} `,
-        pos: -1,
-        end: -1,
-        hasTrailingNewLine: true,
-      },
-    ]);
-  }
+    typeChecker: ts.TypeChecker, host: ReflectionHost): ts.TransformerFactory<ts.SourceFile> {
+      const diagnostics: ts.Diagnostic[] = [];
 
   /**
    * Takes a list of decorator metadata object ASTs and produces an AST for a
@@ -305,7 +258,6 @@ export function getDownlevelDecoratorsTransform(
     // without @nocollapse.
     const prop =
         createPropertyDeclaration([modifier], 'decorators', undefined, undefined, initializer);
-    addJSDocTypeAnnotation(prop, DECORATOR_INVOCATION_JSDOC_TYPE);
     return prop;
   }
 
@@ -335,7 +287,6 @@ export function getDownlevelDecoratorsTransform(
     const prop = createPropertyDeclaration(
         [ts.factory.createToken(ts.SyntaxKind.StaticKeyword)], 'propDecorators', undefined,
         undefined, initializer);
-    addJSDocTypeAnnotation(prop, `!Object<string, ${DECORATOR_INVOCATION_JSDOC_TYPE}>`);
     return prop;
   }
 
@@ -411,7 +362,7 @@ export function getDownlevelDecoratorsTransform(
         // We only deal with concrete nodes in TypeScript sources, so we don't
         // need to handle synthetically created decorators.
         const decoratorNode = decorator.node! as ts.Decorator;
-        if (!isAngularDecorator(decorator, isCore)) {
+        if (!isAngularDecorator(decorator)) {
           decoratorsToKeep.push(decoratorNode);
           continue;
         }
@@ -463,7 +414,7 @@ export function getDownlevelDecoratorsTransform(
           // We only deal with concrete nodes in TypeScript sources, so we don't
           // need to handle synthetically created decorators.
           const decoratorNode = decorator.node! as ts.Decorator;
-          if (!isAngularDecorator(decorator, isCore)) {
+          if (!isAngularDecorator(decorator)) {
             decoratorsToKeep.push(decoratorNode);
             continue;
           }
@@ -536,22 +487,16 @@ export function getDownlevelDecoratorsTransform(
       const possibleAngularDecorators = host.getDecoratorsOfDeclaration(classDecl) || [];
 
       let hasAngularDecorator = false;
-      const decoratorsToLower = [];
+      const decoratorsToLower: ts.ObjectLiteralExpression[] = [];
       for (const decorator of possibleAngularDecorators) {
         // We only deal with concrete nodes in TypeScript sources, so we don't
         // need to handle synthetically created decorators.
-        const decoratorNode = decorator.node! as ts.Decorator;
-        const isNgDecorator = isAngularDecorator(decorator, isCore);
+        const isNgDecorator = isAngularDecorator(decorator);
 
         // Keep track if we come across an Angular class decorator. This is used
         // to determine whether constructor parameters should be captured or not.
         if (isNgDecorator) {
           hasAngularDecorator = true;
-        }
-
-        if (isNgDecorator && !skipClassDecorators) {
-          decoratorsToLower.push(extractMetadataFromSingleDecorator(decoratorNode, diagnostics));
-          decoratorsToKeep.delete(decoratorNode);
         }
       }
 
@@ -563,7 +508,7 @@ export function getDownlevelDecoratorsTransform(
           // Capture constructor parameters if the class has Angular decorator applied,
           // or if any of the parameters has decorators applied directly.
           newMembers.push(createCtorParametersClassProperty(
-              diagnostics, entityNameToExpression, classParameters, isClosureCompilerEnabled));
+              diagnostics, entityNameToExpression, classParameters));
         }
       }
       if (decoratedProperties.size) {

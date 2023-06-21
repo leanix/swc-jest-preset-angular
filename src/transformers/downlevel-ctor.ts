@@ -8,5 +8,5 @@ export const constructorParametersDownlevelTransform = (program: ts.Program): ts
   const typeChecker = program.getTypeChecker();
   const reflectionHost = new TypeScriptReflectionHost(typeChecker);
 
-  return getDownlevelDecoratorsTransform(typeChecker, reflectionHost, [], false, false, true);
+  return getDownlevelDecoratorsTransform(typeChecker, reflectionHost);
 };
