@@ -101,8 +101,15 @@ export class NgJestTransformer {
         map,
       };
     } else if (useSwc) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      return this.#swcJestTransformer.process!(fileContent, filePath, transformOptions);
+      if (filePath.endsWith('.ts')) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return this.#swcJestTransformer.process!(fileContent, filePath, transformOptions);
+      } else {
+        return {
+          code: fileContent,
+          map: null,
+        };
+      }
     } else {
       return this.#tsJestTransformer.process(fileContent, filePath, transformOptions);
     }
