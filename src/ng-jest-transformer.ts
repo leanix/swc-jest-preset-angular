@@ -2,11 +2,18 @@ import { spawnSync } from 'child_process';
 
 import type { TransformedSource, TransformOptions, Transformer } from '@jest/transform';
 import { LogContexts, LogLevels, type Logger, createLogger } from 'bs-logger';
-import { type TsJestTransformerOptions, type ProjectConfigTsJest, ConfigSet, TsJestTransformer } from 'ts-jest';
+import {
+  type TsJestTransformerOptions,
+  type ProjectConfigTsJest,
+  ConfigSet,
+  TsJestTransformer,
+  stringify,
+} from 'ts-jest';
 
 import { NgJestCompiler } from './compiler/ng-jest-compiler';
 import { NgJestConfig } from './config/ng-jest-config';
-import { createTransformer } from './transformers/swc-transformer';
+import { preprocessFileContent } from './transformers/swc/swc-processor';
+import { createTransformer } from './transformers/swc/swc-transformer';
 
 // Cache the result between multiple transformer instances
 // to avoid spawning multiple processes (which can have a major
@@ -101,9 +108,16 @@ export class NgJestTransformer {
         map,
       };
     } else if (useSwc) {
+      fileContent = preprocessFileContent(fileContent, filePath);
       if (filePath.endsWith('.ts')) {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         return this.#swcJestTransformer.process!(fileContent, filePath, transformOptions);
+      } else if (filePath.endsWith('.html')) {
+        // TODO: Check if stringifyContentPathRegex needs to be evaluated here
+        return {
+          code: `module.exports=${stringify(fileContent)}`,
+          map: null,
+        };
       } else {
         return {
           code: fileContent,
