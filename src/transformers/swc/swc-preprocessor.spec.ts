@@ -1,4 +1,4 @@
-const process = require('../preprocessor').process;
+import { preprocessFileContent } from './swc-processor';
 
 const sources = [
   `@Component({
@@ -70,21 +70,10 @@ const sources = [
 })`,
 ];
 
-const config = {
-  globals: {
-    'ts-jest': {
-      tsConfigFile: './__tests__/tsconfig.spec.json'
-    },
-    __TRANSFORM_HTML__: true
-  }
-};
-
-sources.forEach(source => {
-  test(`works with ${source}`, () => {
-    const result = process(source, '', config);
+describe('preprocessFileContent', () => {
+  test.each(sources)('removes styleUrls and imports template for %s', (source) => {
+    const result = preprocessFileContent(source, '');
     expect(result).toMatch('styles: []');
-    expect(result).toMatch(
-      /template: require\(['"`]\.\/media-box-h0\.component\.html['"`]\)/
-    );
+    expect(result).toMatch(/template: require\(['"`]\.\/media-box-h0\.component\.html['"`]\)/);
   });
 });
