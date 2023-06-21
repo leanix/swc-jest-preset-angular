@@ -76,4 +76,10 @@ describe('preprocessFileContent', () => {
     expect(result).toMatch('styles: []');
     expect(result).toMatch(/template: require\(['"`]\.\/media-box-h0\.component\.html['"`]\)/);
   });
+
+  test('escapes backticks in HTML', () => {
+    const source = '<div>`</div>';
+    const result = preprocessFileContent(source, 'test.html');
+    expect(result).toBe('<div>\\`</div>');
+  });
 });
