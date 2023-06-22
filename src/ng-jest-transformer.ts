@@ -1,6 +1,7 @@
 import { spawnSync } from 'child_process';
 
 import type { TransformedSource, TransformOptions, Transformer } from '@jest/transform';
+import { Program } from '@swc/core';
 import { LogContexts, LogLevels, type Logger, createLogger } from 'bs-logger';
 import {
   type TsJestTransformerOptions,
@@ -12,6 +13,7 @@ import {
 
 import { NgJestCompiler } from './compiler/ng-jest-compiler';
 import { NgJestConfig } from './config/ng-jest-config';
+import { downlevelDecorators } from './transformers/swc/swc-downlevel-decorators';
 import { preprocessFileContent } from './transformers/swc/swc-processor';
 import { createTransformer } from './transformers/swc/swc-transformer';
 
@@ -25,6 +27,7 @@ export class NgJestTransformer {
   #esbuildImpl: typeof import('esbuild');
   #tsJestTransformer: TsJestTransformer;
   #swcJestTransformer: Transformer;
+  #swcCurrentModule: Program | null = null;
 
   constructor(tsJestConfig?: TsJestTransformerOptions, private useSwc = true) {
     this.#tsJestTransformer = new TsJestTransformer(tsJestConfig);
@@ -61,6 +64,11 @@ export class NgJestTransformer {
         ignoreDynamic: false,
       },
       swcrc: false,
+      plugin: (module) => {
+        this.#swcCurrentModule = module;
+
+        return module;
+      },
     });
 
     if (useNativeEsbuild === undefined) {
@@ -109,7 +117,12 @@ export class NgJestTransformer {
       fileContent = preprocessFileContent(fileContent, filePath);
       if (filePath.endsWith('.ts')) {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        return this.#swcJestTransformer.process!(fileContent, filePath, transformOptions);
+        const result = this.#swcJestTransformer.process!(fileContent, filePath, { ...transformOptions });
+        if (this.#swcCurrentModule) {
+          result.code = downlevelDecorators(result.code, this.#swcCurrentModule);
+        }
+
+        return result;
       } else if (filePath.endsWith('.html')) {
         // TODO: Check if stringifyContentPathRegex needs to be evaluated here
         return {

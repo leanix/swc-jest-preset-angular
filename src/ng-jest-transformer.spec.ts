@@ -224,12 +224,16 @@ describe('NgJestTransformer', () => {
       describe.each(['ts-jest', 'swc'])('for classes with Angular core decorators for %s', (transformer) => {
         const fileName = 'test.component.ts';
         const options = { config: {} } as unknown as TransformOptions;
+        const importName = (lastSegment: string) =>
+          transformer === 'ts-jest'
+            ? `${lastSegment.replace(/[^\w]/g, '_')}_1`
+            : `_${lastSegment.replace(/[^\w]/g, '')}`;
 
         test('adds ctorParameters for all constructor arguments', () => {
           const tr = new NgJestTransformer({ isolatedModules: true }, transformer === 'swc');
           const originalCode = `
 import { Component, A } from '@angular/core';
-import { B } from './local.ts';
+import { B } from './path/local.ts';
 
 @Component()
 export class TestComponent {
@@ -240,10 +244,25 @@ export class TestComponent {
 
           expect(code).toContain(`
 TestComponent.ctorParameters = () => [
-    { type: core_1.A },
-    { type: local_ts_1.B }
+    { type: ${importName('core')}.A },
+    { type: ${importName('local.ts')}.B }
 ];
 `);
+        });
+
+        test('does not add ctorParameters for classes with other decorators', () => {
+          const tr = new NgJestTransformer({ isolatedModules: true }, transformer === 'swc');
+          const originalCode = `
+import { A, Decorator } from './local.ts';
+
+@Decorator()
+export class TestComponent {
+  constructor(a: A) {}
+}`;
+
+          const { code } = tr.process(originalCode, fileName, options);
+
+          expect(code).not.toContain('TestComponent.ctorParameters');
         });
 
         test('adds propDecorators for all properties with Angular core decorators', () => {
@@ -262,7 +281,7 @@ export class TestComponent {
 
           expect(code).toContain(`
 TestComponent.propDecorators = {
-    input: [{ type: core_1.Input }]
+    input: [{ type: ${importName('core')}.Input }]
 };
 `);
         });
@@ -282,14 +301,14 @@ export class TestComponent {
 
           expect(code).toContain(`
 TestComponent.ctorParameters = () => [
-    { type: core_1.A, decorators: [{ type: core_1.CoreDecorator }] },
-    { type: local_ts_1.B }
+    { type: ${importName('core')}.A, decorators: [{ type: ${importName('core')}.CoreDecorator }] },
+    { type: ${importName('local.ts')}.B }
 ];
 `);
           expect(code).toContain(`
 TestComponent = __decorate([
-    (0, core_1.Component)(),
-    __param(1, (0, local_ts_1.CustomDecorator)())
+    (0, ${importName('core')}.Component)(),
+    __param(1, (0, ${importName('local.ts')}.CustomDecorator)())
 ], TestComponent);
 `);
         });
@@ -308,12 +327,12 @@ export class TestComponent {
 
           expect(code).toContain(`
 TestComponent.propDecorators = {
-    input: [{ type: core_1.Input }]
+    input: [{ type: ${importName('core')}.Input }]
 };
 `);
           expect(code).toContain(`
 __decorate([
-    (0, local_ts_1.CustomDecorator)()
+    (0, ${importName('local.ts')}.CustomDecorator)()
 ], TestComponent.prototype, "input", void 0);
 `);
         });
