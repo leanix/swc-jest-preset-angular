@@ -9,6 +9,7 @@ export function preprocessFileContent(fileContent: string, path: string): string
   if (/\.html$/.test(path)) {
     fileContent = fileContent.replace(ESCAPE_TEMPLATE_REGEX, '\\$1');
   } else if (/\.tsx?$/.test(path) && path !== associatedTestFile) {
+    // TODO: Move this processing into SWC plugin to only do this for component decorators
     fileContent = replaceTemplateAndStylesDecoratorProperties(fileContent);
   }
 
