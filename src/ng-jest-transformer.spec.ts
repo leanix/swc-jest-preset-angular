@@ -15,194 +15,208 @@ jest.mock('esbuild', () => {
 });
 const mockedTransformSync = jest.mocked(transformSync);
 
-describe.skip('NgJestTransformer', () => {
-  beforeEach(() => {
-    // @ts-expect-error testing purpose
-    TsJestTransformer._cachedConfigSets = [];
-  });
-
-  test('should create NgJestCompiler and NgJestConfig instances', () => {
-    const tr = new NgJestTransformer({
-      isolatedModules: true,
+describe('NgJestTransformer', () => {
+  describe('using ts-jest', () => {
+    beforeEach(() => {
+      // @ts-expect-error testing purpose
+      TsJestTransformer._cachedConfigSets = [];
     });
 
-    // @ts-expect-error testing purpose
-    const cs = tr._createConfigSet({
-      cwd: process.cwd(),
-      extensionsToTreatAsEsm: [],
-      testMatch: [],
-      testRegex: [],
+    test('should create NgJestCompiler and NgJestConfig instances', () => {
+      const tr = new NgJestTransformer({ isolatedModules: true }, false);
+
+      // @ts-expect-error testing purpose
+      const cs = tr._createConfigSet({
+        cwd: process.cwd(),
+        extensionsToTreatAsEsm: [],
+        testMatch: [],
+        testRegex: [],
+      });
+
+      // @ts-expect-error testing purpose
+      tr._createCompiler(cs, new Map());
+
+      process.env.ALLOW_TS_JEST_TRANSFORMER_ACCESS = 'true';
+      // @ts-expect-error testing purpose
+      expect(tr.getTsJestTransformer()['_compiler']).toBeInstanceOf(NgJestCompiler);
+      expect(cs).toBeInstanceOf(NgJestConfig);
+      delete process.env.ALLOW_TS_JEST_TRANSFORMER_ACCESS;
     });
 
-    // @ts-expect-error testing purpose
-    tr._createCompiler(cs, new Map());
+    test('should not use esbuild to process js files which are not from `node_modules`', () => {
+      const tr = new NgJestTransformer(
+        {
+          isolatedModules: true,
+        },
+        false,
+      );
+      tr.process(
+        `
+        const pi = parseFloat(3.124);
 
-    // @ts-expect-error testing purpose
-    expect(tr._compiler).toBeInstanceOf(NgJestCompiler);
-    expect(cs).toBeInstanceOf(NgJestConfig);
-  });
+        export { pi };
+      `,
+        'foo.js',
+        {
+          config: {
+            cwd: process.cwd(),
+            extensionsToTreatAsEsm: [],
+            testMatch: [],
+            testRegex: [],
+          },
+        } as any, // eslint-disable-line @typescript-eslint/no-explicit-any,
+      );
 
-  test('should not use esbuild to process js files which are not from `node_modules`', () => {
-    const tr = new NgJestTransformer({
-      isolatedModules: true,
+      expect(mockedTransformSync).not.toHaveBeenCalled();
     });
-    tr.process(
-      `
-      const pi = parseFloat(3.124);
 
-      export { pi };
-    `,
-      'foo.js',
+    test('should not use esbuild to process tslib file', () => {
+      const tr = new NgJestTransformer(
+        {
+          isolatedModules: true,
+        },
+        false,
+      );
+      tr.process(
+        `
+        const pi = parseFloat(3.124);
+
+        export { pi };
+      `,
+        'node_modules/tslib.es6.js',
+        {
+          config: {
+            cwd: process.cwd(),
+            extensionsToTreatAsEsm: [],
+            testMatch: [],
+            testRegex: [],
+          },
+        } as any, // eslint-disable-line @typescript-eslint/no-explicit-any,
+      );
+
+      expect(mockedTransformSync).not.toHaveBeenCalled();
+    });
+
+    test.each([
       {
+        tsconfig: {
+          sourceMap: false,
+        },
+      },
+      {
+        tsconfig: {
+          target: 'es2016',
+        },
+      },
+      {
+        tsconfig: {},
+      },
+    ])('should use esbuild to process mjs or `node_modules` js files to CJS codes', ({ tsconfig }) => {
+      const transformCfg = {
+        cacheFS: new Map(),
         config: {
           cwd: process.cwd(),
           extensionsToTreatAsEsm: [],
           testMatch: [],
           testRegex: [],
+          globals: {
+            ngJest: {
+              processWithEsbuild: ['node_modules/foo.js'],
+            },
+          },
         },
-      } as any, // eslint-disable-line @typescript-eslint/no-explicit-any,
-    );
+      } as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+      const tr = new NgJestTransformer(
+        {
+          tsconfig,
+        },
+        false,
+      );
+      tr.process(
+        `
+        const pi = parseFloat(3.124);
 
-    expect(mockedTransformSync).not.toHaveBeenCalled();
-  });
+        export { pi };
+      `,
+        'foo.mjs',
+        transformCfg,
+      );
+      tr.process(
+        `
+        const pi = parseFloat(3.124);
 
-  test('should not use esbuild to process tslib file', () => {
-    const tr = new NgJestTransformer({
-      isolatedModules: true,
+        export { pi };
+      `,
+        'node_modules/foo.js',
+        transformCfg,
+      );
+
+      expect(mockedTransformSync.mock.calls[0]).toMatchSnapshot();
+      expect(mockedTransformSync.mock.calls[1]).toMatchSnapshot();
+
+      mockedTransformSync.mockClear();
     });
-    tr.process(
-      `
-      const pi = parseFloat(3.124);
 
-      export { pi };
-    `,
-      'node_modules/tslib.es6.js',
+    test.each([
       {
+        tsconfig: {
+          sourceMap: false,
+        },
+      },
+      {
+        tsconfig: {
+          target: 'es2016',
+        },
+      },
+      {
+        tsconfig: {},
+      },
+    ])('should use esbuild to process mjs or `node_modules` js files to ESM codes', ({ tsconfig }) => {
+      const transformCfg = {
+        cacheFS: new Map(),
         config: {
           cwd: process.cwd(),
           extensionsToTreatAsEsm: [],
           testMatch: [],
           testRegex: [],
-        },
-      } as any, // eslint-disable-line @typescript-eslint/no-explicit-any,
-    );
-
-    expect(mockedTransformSync).not.toHaveBeenCalled();
-  });
-
-  test.each([
-    {
-      tsconfig: {
-        sourceMap: false,
-      },
-    },
-    {
-      tsconfig: {
-        target: 'es2016',
-      },
-    },
-    {
-      tsconfig: {},
-    },
-  ])('should use esbuild to process mjs or `node_modules` js files to CJS codes', ({ tsconfig }) => {
-    const transformCfg = {
-      cacheFS: new Map(),
-      config: {
-        cwd: process.cwd(),
-        extensionsToTreatAsEsm: [],
-        testMatch: [],
-        testRegex: [],
-        globals: {
-          ngJest: {
-            processWithEsbuild: ['node_modules/foo.js'],
+          globals: {
+            ngJest: {
+              processWithEsbuild: ['node_modules/foo.js'],
+            },
           },
         },
-      },
-    } as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-    const tr = new NgJestTransformer({
-      tsconfig,
-    });
-    tr.process(
-      `
-      const pi = parseFloat(3.124);
-
-      export { pi };
-    `,
-      'foo.mjs',
-      transformCfg,
-    );
-    tr.process(
-      `
-      const pi = parseFloat(3.124);
-
-      export { pi };
-    `,
-      'node_modules/foo.js',
-      transformCfg,
-    );
-
-    expect(mockedTransformSync.mock.calls[0]).toMatchSnapshot();
-    expect(mockedTransformSync.mock.calls[1]).toMatchSnapshot();
-
-    mockedTransformSync.mockClear();
-  });
-
-  test.each([
-    {
-      tsconfig: {
-        sourceMap: false,
-      },
-    },
-    {
-      tsconfig: {
-        target: 'es2016',
-      },
-    },
-    {
-      tsconfig: {},
-    },
-  ])('should use esbuild to process mjs or `node_modules` js files to ESM codes', ({ tsconfig }) => {
-    const transformCfg = {
-      cacheFS: new Map(),
-      config: {
-        cwd: process.cwd(),
-        extensionsToTreatAsEsm: [],
-        testMatch: [],
-        testRegex: [],
-        globals: {
-          ngJest: {
-            processWithEsbuild: ['node_modules/foo.js'],
-          },
+        supportsStaticESM: true,
+      } as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+      const tr = new NgJestTransformer(
+        {
+          tsconfig,
+          useESM: true,
         },
-      },
-      supportsStaticESM: true,
-    } as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-    const tr = new NgJestTransformer({
-      tsconfig,
-      useESM: true,
+        false,
+      );
+      tr.process(
+        `
+        const pi = parseFloat(3.124);
+
+        export { pi };
+      `,
+        'foo.mjs',
+        transformCfg,
+      );
+      tr.process(
+        `
+        const pi = parseFloat(3.124);
+
+        export { pi };
+      `,
+        'node_modules/foo.js',
+        transformCfg,
+      );
+
+      expect(mockedTransformSync.mock.calls[0]).toMatchSnapshot();
+      expect(mockedTransformSync.mock.calls[1]).toMatchSnapshot();
+
+      mockedTransformSync.mockClear();
     });
-    tr.process(
-      `
-      const pi = parseFloat(3.124);
-
-      export { pi };
-    `,
-      'foo.mjs',
-      transformCfg,
-    );
-    tr.process(
-      `
-      const pi = parseFloat(3.124);
-
-      export { pi };
-    `,
-      'node_modules/foo.js',
-      transformCfg,
-    );
-
-    expect(mockedTransformSync.mock.calls[0]).toMatchSnapshot();
-    expect(mockedTransformSync.mock.calls[1]).toMatchSnapshot();
-
-    mockedTransformSync.mockClear();
   });
 });

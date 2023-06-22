@@ -135,4 +135,12 @@ export class NgJestTransformer {
       return this.#tsJestTransformer.getCacheKey(fileContent, filePath, transformOptions);
     }
   }
+
+  protected getTsJestTransformer(): TsJestTransformer {
+    if (process.env.ALLOW_TS_JEST_TRANSFORMER_ACCESS === 'true') {
+      return this.#tsJestTransformer;
+    } else {
+      throw new Error('Access not permitted');
+    }
+  }
 }
