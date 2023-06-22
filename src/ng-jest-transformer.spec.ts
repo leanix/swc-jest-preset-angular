@@ -1,5 +1,6 @@
+import { TransformOptions } from '@jest/transform';
 import { transformSync } from 'esbuild';
-import { TsJestTransformer } from 'ts-jest';
+import { TsJestTransformer, type ProjectConfigTsJest } from 'ts-jest';
 
 import { NgJestCompiler } from './compiler/ng-jest-compiler';
 import { NgJestConfig } from './config/ng-jest-config';
@@ -217,6 +218,106 @@ describe('NgJestTransformer', () => {
       expect(mockedTransformSync.mock.calls[1]).toMatchSnapshot();
 
       mockedTransformSync.mockClear();
+    });
+
+    describe('decorator downleveling', () => {
+      describe.each(['ts-jest', 'swc'])('for classes with Angular core decorators for %s', (transformer) => {
+        const fileName = 'test.component.ts';
+        const options = { config: {} } as unknown as TransformOptions;
+
+        test('adds ctorParameters for all constructor arguments', () => {
+          const tr = new NgJestTransformer({ isolatedModules: true }, transformer === 'swc');
+          const originalCode = `
+import { Component, A } from '@angular/core';
+import { B } from './local.ts';
+
+@Component()
+export class TestComponent {
+  constructor(private a: A, b: B) {}
+}`;
+
+          const { code } = tr.process(originalCode, fileName, options);
+
+          expect(code).toContain(`
+TestComponent.ctorParameters = () => [
+    { type: core_1.A },
+    { type: local_ts_1.B }
+];
+`);
+        });
+
+        test('adds propDecorators for all properties with Angular core decorators', () => {
+          const tr = new NgJestTransformer({ isolatedModules: true }, transformer === 'swc');
+          const originalCode = `
+import { Component, Input } from '@angular/core';
+import { B, CustomDecorator } from './local.ts';
+
+@Component()
+export class TestComponent {
+    @Input() input: string;
+    @CustomDecorator() custom: B;
+}`;
+          debugger;
+          const { code } = tr.process(originalCode, fileName, options);
+
+          expect(code).toContain(`
+TestComponent.propDecorators = {
+    input: [{ type: core_1.Input }]
+};
+`);
+        });
+
+        test('decorators on constructor arguments', () => {
+          const tr = new NgJestTransformer({ isolatedModules: true }, transformer === 'swc');
+          const originalCode = `
+import { Component, A, CoreDecorator } from '@angular/core';
+import { B, CustomDecorator } from './local.ts';
+
+@Component()
+export class TestComponent {
+  constructor(@CoreDecorator() private a: A, @CustomDecorator() b: B) {}
+}`;
+
+          const { code } = tr.process(originalCode, fileName, options);
+
+          expect(code).toContain(`
+TestComponent.ctorParameters = () => [
+    { type: core_1.A, decorators: [{ type: core_1.CoreDecorator }] },
+    { type: local_ts_1.B }
+];
+`);
+          expect(code).toContain(`
+TestComponent = __decorate([
+    (0, core_1.Component)(),
+    __param(1, (0, local_ts_1.CustomDecorator)())
+], TestComponent);
+`);
+        });
+
+        test('custom decorator on class properties', () => {
+          const tr = new NgJestTransformer({ isolatedModules: true }, transformer === 'swc');
+          const originalCode = `
+import { Component, Input } from '@angular/core';
+import { B, CustomDecorator } from './local.ts';
+
+@Component()
+export class TestComponent {
+    @CustomDecorator() @Input() input: string;
+}`;
+          const { code } = tr.process(originalCode, fileName, options);
+
+          expect(code).toContain(`
+TestComponent.propDecorators = {
+    input: [{ type: core_1.Input }]
+};
+`);
+          expect(code).toContain(`
+__decorate([
+    (0, local_ts_1.CustomDecorator)()
+], TestComponent.prototype, "input", void 0);
+`);
+        });
+      });
     });
   });
 });
