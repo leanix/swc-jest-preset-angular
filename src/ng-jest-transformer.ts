@@ -20,15 +20,13 @@ import { createTransformer } from './transformers/swc/swc-transformer';
 // performance impact when used with multiple projects).
 let useNativeEsbuild: boolean | undefined;
 
-const useSwc = true;
-
 export class NgJestTransformer {
   #ngJestLogger: Logger;
   #esbuildImpl: typeof import('esbuild');
   #tsJestTransformer: TsJestTransformer;
   #swcJestTransformer: Transformer;
 
-  constructor(tsJestConfig?: TsJestTransformerOptions) {
+  constructor(tsJestConfig?: TsJestTransformerOptions, private useSwc = true) {
     this.#tsJestTransformer = new TsJestTransformer(tsJestConfig);
     this.#tsJestTransformer['_createConfigSet'] = this._createConfigSet.bind(this);
     this.#tsJestTransformer['_createCompiler'] = this._createCompiler.bind(this);
@@ -107,7 +105,7 @@ export class NgJestTransformer {
         code,
         map,
       };
-    } else if (useSwc) {
+    } else if (this.useSwc) {
       fileContent = preprocessFileContent(fileContent, filePath);
       if (filePath.endsWith('.ts')) {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -130,7 +128,7 @@ export class NgJestTransformer {
   }
 
   getCacheKey(fileContent: string, filePath: string, transformOptions: TransformOptions): string {
-    if (useSwc) {
+    if (this.useSwc) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       return this.#swcJestTransformer.getCacheKey!(fileContent, filePath, transformOptions);
     } else {
