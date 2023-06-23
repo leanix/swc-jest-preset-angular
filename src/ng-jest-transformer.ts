@@ -1,7 +1,7 @@
 import { spawnSync } from 'child_process';
 
 import type { TransformedSource, TransformOptions, Transformer } from '@jest/transform';
-import { Program } from '@swc/core';
+import { parseSync } from '@swc/core';
 import { LogContexts, LogLevels, type Logger, createLogger } from 'bs-logger';
 import {
   type TsJestTransformerOptions,
@@ -27,7 +27,6 @@ export class NgJestTransformer {
   #esbuildImpl: typeof import('esbuild');
   #tsJestTransformer: TsJestTransformer;
   #swcJestTransformer: Transformer;
-  #swcCurrentModule: Program | null = null;
 
   constructor(tsJestConfig?: TsJestTransformerOptions, private useSwc = true) {
     this.#tsJestTransformer = new TsJestTransformer(tsJestConfig);
@@ -64,11 +63,6 @@ export class NgJestTransformer {
         ignoreDynamic: false,
       },
       swcrc: false,
-      plugin: (module) => {
-        this.#swcCurrentModule = module;
-
-        return module;
-      },
     });
 
     if (useNativeEsbuild === undefined) {
@@ -116,11 +110,12 @@ export class NgJestTransformer {
     } else if (this.useSwc) {
       fileContent = preprocessFileContent(fileContent, filePath);
       if (filePath.endsWith('.ts')) {
+        fileContent = 'a((b) => b?.c());';
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const result = this.#swcJestTransformer.process!(fileContent, filePath, { ...transformOptions });
-        if (this.#swcCurrentModule) {
-          result.code = downlevelDecorators(result.code, this.#swcCurrentModule);
-        }
+        // TODO: Move back to using plugin when https://github.com/swc-project/swc/issues/6255 is fixed
+        const parsedCode = parseSync(fileContent);
+        result.code = downlevelDecorators(result.code, parsedCode);
 
         return result;
       } else if (filePath.endsWith('.html')) {
