@@ -1,7 +1,7 @@
 import { spawnSync } from 'child_process';
 
 import type { TransformOptions, TransformedSource, Transformer } from '@jest/transform';
-import { Program } from '@swc/core';
+import { ParserConfig, parseSync } from '@swc/core';
 import { LogContexts, LogLevels, createLogger, type Logger } from 'bs-logger';
 import {
   ConfigSet,
@@ -22,12 +22,18 @@ import { createTransformer } from './transformers/swc/swc-transformer';
 // performance impact when used with multiple projects).
 let useNativeEsbuild: boolean | undefined;
 
+const parserConfig: ParserConfig = {
+  syntax: 'typescript',
+  tsx: false,
+  decorators: true,
+  dynamicImport: true,
+};
+
 export class NgJestTransformer {
   #ngJestLogger: Logger;
   #esbuildImpl: typeof import('esbuild');
   #tsJestTransformer: TsJestTransformer;
   #swcJestTransformer: Transformer;
-  #swcCurrentModule: Program | null = null;
 
   constructor(tsJestConfig?: TsJestTransformerOptions, private useSwc = true) {
     this.#tsJestTransformer = new TsJestTransformer(tsJestConfig);
@@ -44,12 +50,7 @@ export class NgJestTransformer {
     });
     this.#swcJestTransformer = createTransformer({
       jsc: {
-        parser: {
-          syntax: 'typescript',
-          tsx: false,
-          decorators: true,
-          dynamicImport: true,
-        },
+        parser: parserConfig,
         transform: {
           legacyDecorator: true,
           decoratorMetadata: undefined,
@@ -64,11 +65,6 @@ export class NgJestTransformer {
         ignoreDynamic: false,
       },
       swcrc: false,
-      plugin: (module) => {
-        this.#swcCurrentModule = module;
-
-        return module;
-      },
     });
 
     if (useNativeEsbuild === undefined) {
@@ -118,8 +114,9 @@ export class NgJestTransformer {
       if (/\.(ts|js|mjs)$/.test(filePath)) {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const result = this.#swcJestTransformer.process!(fileContent, filePath, { ...transformOptions });
-        if (this.#swcCurrentModule) {
-          result.code = downlevelDecorators(result.code, this.#swcCurrentModule);
+        if (/\.ts$/.test(filePath)) {
+          const parsed = parseSync(fileContent, parserConfig);
+          result.code = downlevelDecorators(result.code, parsed);
         }
 
         return result;
