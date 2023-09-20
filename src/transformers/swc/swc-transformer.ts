@@ -99,7 +99,7 @@ function buildSwcTransformOpts(swcOptions: (Options & { experimental?: unknown }
   const { experimental, ...computedSwcOptions } =
     swcOptions || (getOptionsFromSwrc() as Options & { experimental?: unknown });
 
-  if (!computedSwcOptions.jsc?.target) {
+  if (!computedSwcOptions.env && !computedSwcOptions.jsc?.target) {
     set(computedSwcOptions, 'jsc.target', 'es2016');
   }
 
@@ -107,6 +107,10 @@ function buildSwcTransformOpts(swcOptions: (Options & { experimental?: unknown }
 
   if (!computedSwcOptions.sourceMaps) {
     set(computedSwcOptions, 'sourceMaps', 'inline');
+  }
+
+  if (computedSwcOptions.jsc?.baseUrl) {
+    set(computedSwcOptions, 'jsc.baseUrl', path.resolve(computedSwcOptions.jsc.baseUrl));
   }
 
   return computedSwcOptions;
