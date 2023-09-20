@@ -1,14 +1,14 @@
 import { spawnSync } from 'child_process';
 
-import type { TransformedSource, TransformOptions, Transformer } from '@jest/transform';
+import type { TransformOptions, TransformedSource, Transformer } from '@jest/transform';
 import { Program } from '@swc/core';
-import { LogContexts, LogLevels, type Logger, createLogger } from 'bs-logger';
+import { LogContexts, LogLevels, createLogger, type Logger } from 'bs-logger';
 import {
-  type TsJestTransformerOptions,
-  type ProjectConfigTsJest,
   ConfigSet,
   TsJestTransformer,
   stringify,
+  type ProjectConfigTsJest,
+  type TsJestTransformerOptions,
 } from 'ts-jest';
 
 import { NgJestCompiler } from './compiler/ng-jest-compiler';
@@ -115,7 +115,7 @@ export class NgJestTransformer {
       };
     } else if (this.useSwc) {
       fileContent = preprocessFileContent(fileContent, filePath);
-      if (filePath.endsWith('.ts')) {
+      if (/\.(ts|js|mjs)$/.test(filePath)) {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const result = this.#swcJestTransformer.process!(fileContent, filePath, { ...transformOptions });
         if (this.#swcCurrentModule) {
@@ -123,7 +123,7 @@ export class NgJestTransformer {
         }
 
         return result;
-      } else if (filePath.endsWith('.html')) {
+      } else if (/\.html$/.test(filePath)) {
         // TODO: Check if stringifyContentPathRegex needs to be evaluated here
         return {
           code: `module.exports=${stringify(fileContent)}`,
