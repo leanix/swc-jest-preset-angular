@@ -110,7 +110,6 @@ export class NgJestTransformer {
     } else if (this.useSwc) {
       fileContent = preprocessFileContent(fileContent, filePath);
       if (filePath.endsWith('.ts')) {
-        fileContent = 'a((b) => b?.c());';
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const result = this.#swcJestTransformer.process!(fileContent, filePath, { ...transformOptions });
         const parsedCode = parseSync(fileContent);
