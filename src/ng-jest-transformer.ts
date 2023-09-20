@@ -16,6 +16,7 @@ import { NgJestConfig } from './config/ng-jest-config';
 import { downlevelDecorators } from './transformers/swc/swc-downlevel-decorators';
 import { preprocessFileContent } from './transformers/swc/swc-processor';
 import { createTransformer } from './transformers/swc/swc-transformer';
+import { makeExportsConfigurable } from './transformers/swc/make-exports-configurable';
 
 // Cache the result between multiple transformer instances
 // to avoid spawning multiple processes (which can have a major
@@ -118,6 +119,8 @@ export class NgJestTransformer {
           const parsed = parseSync(fileContent, parserConfig);
           result.code = downlevelDecorators(result.code, parsed);
         }
+
+        result.code = makeExportsConfigurable(result.code);
 
         return result;
       } else if (/\.html$/.test(filePath)) {
