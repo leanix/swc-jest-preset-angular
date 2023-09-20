@@ -1,7 +1,7 @@
 import { spawnSync } from 'child_process';
 
 import type { TransformedSource, TransformOptions, Transformer } from '@jest/transform';
-import { parseSync } from '@swc/core';
+import { Program } from '@swc/core';
 import { LogContexts, LogLevels, type Logger, createLogger } from 'bs-logger';
 import {
   type TsJestTransformerOptions,
@@ -27,6 +27,7 @@ export class NgJestTransformer {
   #esbuildImpl: typeof import('esbuild');
   #tsJestTransformer: TsJestTransformer;
   #swcJestTransformer: Transformer;
+  #swcCurrentModule: Program | null = null;
 
   constructor(tsJestConfig?: TsJestTransformerOptions, private useSwc = true) {
     this.#tsJestTransformer = new TsJestTransformer(tsJestConfig);
@@ -63,6 +64,11 @@ export class NgJestTransformer {
         ignoreDynamic: false,
       },
       swcrc: false,
+      plugin: (module) => {
+        this.#swcCurrentModule = module;
+
+        return module;
+      },
     });
 
     if (useNativeEsbuild === undefined) {
@@ -112,9 +118,9 @@ export class NgJestTransformer {
       if (filePath.endsWith('.ts')) {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const result = this.#swcJestTransformer.process!(fileContent, filePath, { ...transformOptions });
-        const parsedCode = parseSync(fileContent);
-        // TODO: Consider using a Rust SWC plugin for the following
-        result.code = downlevelDecorators(result.code, parsedCode);
+        if (this.#swcCurrentModule) {
+          result.code = downlevelDecorators(result.code, this.#swcCurrentModule);
+        }
 
         return result;
       } else if (filePath.endsWith('.html')) {
