@@ -113,8 +113,8 @@ export class NgJestTransformer {
         fileContent = 'a((b) => b?.c());';
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const result = this.#swcJestTransformer.process!(fileContent, filePath, { ...transformOptions });
-        // TODO: Move back to using plugin when https://github.com/swc-project/swc/issues/6255 is fixed
         const parsedCode = parseSync(fileContent);
+        // TODO: Consider using a Rust SWC plugin for the following
         result.code = downlevelDecorators(result.code, parsedCode);
 
         return result;
