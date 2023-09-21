@@ -223,14 +223,12 @@ describe('NgJestTransformer', () => {
     describe.each(['ts-jest', 'swc'])('for classes with Angular core decorators for %s', (transformer) => {
       const fileName = 'test.component.ts';
       const options = { config: {} } as unknown as TransformOptions;
-      const importName = (lastSegment: string) =>
-        transformer === 'ts-jest' ? `${lastSegment.replace(/[^\w]/g, '_')}_1` : `_${lastSegment.replace(/[^\w]/g, '')}`;
 
       test('adds ctorParameters for all constructor arguments', () => {
         const tr = new NgJestTransformer({ isolatedModules: true }, transformer === 'swc');
         const originalCode = `
 import { Component, A } from '@angular/core';
-import { B } from './path/local.ts';
+import { B } from './local.ts';
 
 @Component()
 export class TestComponent {
@@ -239,10 +237,10 @@ export class TestComponent {
 
         const { code } = tr.process(originalCode, fileName, options);
 
-        expect(code).toContain(`
+        expect(inlineImports(code)).toContain(`
 TestComponent.ctorParameters = () => [
-    { type: ${importName('core')}.A },
-    { type: ${importName('local.ts')}.B }
+    { type: require("@angular/core").A },
+    { type: require("./local.ts").B }
 ];
 `);
       });
@@ -259,7 +257,7 @@ export class TestComponent {
 
         const { code } = tr.process(originalCode, fileName, options);
 
-        expect(code).not.toContain('TestComponent.ctorParameters');
+        expect(inlineImports(code)).not.toContain('TestComponent.ctorParameters');
       });
 
       test('adds propDecorators for all properties with Angular core decorators', () => {
@@ -275,9 +273,9 @@ export class TestComponent {
 }`;
         const { code } = tr.process(originalCode, fileName, options);
 
-        expect(code).toContain(`
+        expect(inlineImports(code)).toContain(`
 TestComponent.propDecorators = {
-    input: [{ type: ${importName('core')}.Input }]
+    input: [{ type: require("@angular/core").Input }]
 };
 `);
       });
@@ -295,16 +293,16 @@ export class TestComponent {
 
         const { code } = tr.process(originalCode, fileName, options);
 
-        expect(code).toContain(`
+        expect(inlineImports(code)).toContain(`
 TestComponent.ctorParameters = () => [
-    { type: ${importName('core')}.A, decorators: [{ type: ${importName('core')}.CoreDecorator }] },
-    { type: ${importName('local.ts')}.B }
+    { type: require("@angular/core").A, decorators: [{ type: require("@angular/core").CoreDecorator }] },
+    { type: require("./local.ts").B }
 ];
 `);
-        expect(code).toContain(`
+        expect(inlineImports(code)).toContain(`
 TestComponent = __decorate([
-    (0, ${importName('core')}.Component)(),
-    __param(1, (0, ${importName('local.ts')}.CustomDecorator)())
+    (0, require("@angular/core").Component)(),
+    __param(1, (0, require("./local.ts").CustomDecorator)())
 ], TestComponent);
 `);
       });
@@ -321,17 +319,27 @@ export class TestComponent {
 }`;
         const { code } = tr.process(originalCode, fileName, options);
 
-        expect(code).toContain(`
+        expect(inlineImports(code)).toContain(`
 TestComponent.propDecorators = {
-    input: [{ type: ${importName('core')}.Input }]
+    input: [{ type: require("@angular/core").Input }]
 };
 `);
-        expect(code).toContain(`
+        expect(inlineImports(code)).toContain(`
 __decorate([
-    (0, ${importName('local.ts')}.CustomDecorator)()
+    (0, require("./local.ts").CustomDecorator)()
 ], TestComponent.prototype, "input", void 0);
 `);
       });
     });
   });
 });
+
+function inlineImports(code: string): string {
+  const regex = /(?<=^|\n) *const (?<name>\w+) = require\(\"(?<path>.*?)\"\);/g;
+  [...code.matchAll(regex)].forEach(({ groups }) => {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    code = code.replace(new RegExp(`${groups!['name']}\.`, 'g'), `require("${groups!['path']}").`);
+  });
+
+  return code;
+}
