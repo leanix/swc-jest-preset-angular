@@ -330,6 +330,144 @@ __decorate([
 ], TestComponent.prototype, "input", void 0);
 `);
       });
+
+      /**
+       * The following test was taken from
+       * https://github.com/angular/tsickle/blob/e83542d20cf/test_files/decorator/decorator.ts
+       */
+      test('extensive tsickle test case', () => {
+        const tr = new NgJestTransformer({ isolatedModules: true }, transformer === 'swc');
+        const originalCode = /*ts*/ `
+          import { Component } from '@angular/core';
+          import DefaultImport from './default_export';
+          import { AClass, AClass as ARenamedClass, AClassWithGenerics, AType, ReexportedOtherClass } from './external';
+          import { OtherClass } from './external2';
+          import * as api from './only_types';
+          import { AnotherType } from './only_types';
+
+          function decorator(a: Object, b: string) {}
+
+          /** @Annotation */
+          function annotationDecorator(a: Object, b: string): any {
+            return null!;
+          }
+
+          function classDecorator(t: any) {
+            return t;
+          }
+
+          type classAnnotation = {};
+          // should not matter, but getDeclarations() returns this node too.
+          // Comment comes after statement so that type alias does not have
+          // a comment on its own.
+
+          /** @Annotation */
+          function classAnnotation(t: any) {
+            return t;
+          }
+
+          type LocalTypeAlias = Map<string, number>;
+
+          @classAnnotation
+          @Component()
+          class DecoratorTest {
+            constructor(
+              a: any[],
+              @annotationDecorator(1, 'args') anyDecorated: any,
+              n: number,
+              b: boolean,
+              promise: Promise<string>,
+              arr: Array<string>,
+              aClass: AClass,
+              AClass: AClass,
+              aRenamedClass: ARenamedClass,
+              aClassWithGenerics: AClassWithGenerics<string>,
+              aType: AType,
+              defaultImport: DefaultImport,
+              localTypeAlias: LocalTypeAlias,
+              otherClass: OtherClass,
+              anotherClass: ReexportedOtherClass,
+              anotherType: AnotherType[],
+              anotherPrefixed: api.AnotherType,
+              fnUsingAType: (t: AType) => string,
+              valueWithCtorSignature = {constructor(x: string) {}},
+            ) {}
+
+            @annotationDecorator
+            get w(): number {
+              return 1;
+            }
+
+            /** Some comment */
+            @decorator private x: number;
+
+            @annotationDecorator private y: number;
+
+            @decorator private z: AClass;
+          }`;
+        const { code } = tr.process(originalCode, fileName, options);
+
+        // // The tsickle expectations are not quite matching :/
+        // expect(inlineImports(code)).toContain(`
+        // DecoratorTest.ctorParameters = () => [
+        //   { type: Array },
+        //   { type: undefined, decorators: [{ type: annotationDecorator, args: [1, 'args',] }] },
+        //   { type: Number },
+        //   { type: Boolean },
+        //   { type: Promise },
+        //   { type: Array },
+        //   { type: require("./external").AClass },
+        //   { type: require("./external").AClass },
+        //   { type: require("./external").AClass },
+        //   { type: require("./external").AClassWithGenerics },
+        //   { type: undefined },
+        //   { type: default_export_1.default },
+        //   { type: undefined },
+        //   { type: require("./external2").OtherClass },
+        //   { type: require("./external").ReexportedOtherClass },
+        //   { type: Array },
+        //   { type: undefined },
+        //   { type: Function },
+        //   null
+        // ];
+        // `);
+
+        //         expect(inlineImports(code)).toContain(`
+        // DecoratorTest.propDecorators = {
+        //   w: [{ type: annotationDecorator }],
+        //   y: [{ type: annotationDecorator }]
+        // };
+        // `);
+        //         expect(inlineImports(code)).toContain(`
+        // DecoratorTest.decorators = [
+        //   { type: classAnnotation },
+        // ];
+        // `);
+
+        expect(inlineImports(code)).toContain(`
+DecoratorTest.ctorParameters = () => [
+    { type: Array },
+    { type: undefined },
+    { type: Number },
+    { type: Boolean },
+    { type: undefined },
+    { type: undefined },
+    { type: require("./external").AClass },
+    { type: require("./external").AClass },
+    { type: require("./external").AClass },
+    { type: require("./external").AClassWithGenerics },
+    { type: require("./external").AType },
+    { type: default_export_1.default },
+    { type: undefined },
+    { type: require("./external2").OtherClass },
+    { type: require("./external").ReexportedOtherClass },
+    { type: Array },
+    { type: undefined },
+    { type: Function },
+    null
+];
+`);
+      });
     });
   });
 });
