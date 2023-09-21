@@ -78,7 +78,6 @@ const sources = [
 
 describe('preprocessFileContent', () => {
   test.each(sources)('removes styleUrls and imports template for %s', (source) => {
-    debugger;
     const result = preprocessFileContent(source, 'test.ts');
     expect(result).not.toMatch('styleUrls');
     expect(result).not.toMatch('styles');

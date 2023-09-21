@@ -276,7 +276,6 @@ export class TestComponent {
     @Input() input: string;
     @CustomDecorator() custom: B;
 }`;
-          debugger;
           const { code } = tr.process(originalCode, fileName, options);
 
           expect(code).toContain(`
