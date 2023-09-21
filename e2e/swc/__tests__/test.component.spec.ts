@@ -10,5 +10,5 @@ test('Simple coomponent should compile', waitForAsync(() => {
   const fixture = TestBed.createComponent(TestComponent);
   fixture.detectChanges();
 
-  expect(fixture.componentInstance).toBeTruthy();
+  expect(document.documentElement.querySelector('div').textContent).toBe('TokenContent');
 }));

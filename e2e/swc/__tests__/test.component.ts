@@ -1,18 +1,21 @@
-import { Component, Input, ChangeDetectorRef, ApplicationRef } from '@angular/core';
+import { Component, Input, ChangeDetectorRef, ApplicationRef, Optional, Inject, InjectionToken } from '@angular/core';
+
+export const TOKEN = new InjectionToken<string>('TOKEN');
 
 @Component({
   selector: 'test',
-  template: 'test OK',
+  template: '{{someToken}}',
+  providers: [{ provide: TOKEN, useValue: 'TokenContent' }],
 })
 export class TestComponent {
   @Input() someInput!: string;
 
   constructor(
     /* Some comment*/
-    private _changeDetectorRef: ChangeDetectorRef,
+    protected _changeDetectorRef: ChangeDetectorRef,
     _applicationRef: ApplicationRef,
-    /* Another comment*/
+    @Optional() @Inject(TOKEN) public someToken?: string /* Another comment*/,
   ) {
-    this._changeDetectorRef = this._changeDetectorRef;
+    console.log(someToken);
   }
 }
